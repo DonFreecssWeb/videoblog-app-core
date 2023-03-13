@@ -1,42 +1,32 @@
 package com.dev.videoblogappcorejorge.videoblog;
 
+import com.dev.videoblogappcorejorge.configuration.JwtService;
+import com.dev.videoblogappcorejorge.exceptions.VideoBlogException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RequestMapping("/api")
 @RestController
+@RequiredArgsConstructor
 public class VideoBlogController {
+    private final VideoBlogService videoBlogService;
 
-    @Autowired
-    VideoBlogService videoBlogService;
-
+    private final JwtService jwtService;
     @PostMapping("/create-post")
     public ResponseEntity<String> createPost(
-            @RequestBody  VideoBlog videoBlog
+            @RequestBody  VideoBlogDTO videoBlogDTO,
+            @RequestHeader("Authorization") String authorization
     ){
-            if(videoBlog.getTitle()== null || videoBlog.getUrlVideo().isBlank()){
-                return  ResponseEntity.badRequest().body("You must place a title");
-            }
-        if(videoBlog.getDescription() == null || videoBlog.getDescription().isBlank()){
-            return  ResponseEntity.badRequest().body("You must place a description");
-        }
-        if(videoBlog.getUrlVideo() == null || videoBlog.getUrlVideo().isBlank()){
-            return  ResponseEntity.badRequest().body("You must place a url video");
-        }
-        if(videoBlog.getUsername() == null || videoBlog.getUsername().isBlank()){
-            return  ResponseEntity.badRequest().body("You must place a username");
+        if(!jwtService.validateToken(authorization,videoBlogDTO.getUsername())){
+            return ResponseEntity.status(401).body("Token no valid");
         }
         try{
-            videoBlogService.createVideoBlog(videoBlog);
+            videoBlogService.createVideoBlog(videoBlogDTO);
           return   ResponseEntity.status(201).body("VideoBlog created");
-        }catch (Exception e){
-            return ResponseEntity.internalServerError().body(e.getMessage());
+        }catch (VideoBlogException e){
+            return ResponseEntity.status(e.getCode()).body(e.getMessage());
         }
-
-
     }
 }
